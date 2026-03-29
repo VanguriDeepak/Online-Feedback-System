@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Online Feedback System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-light: #eff6ff;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #06b6d4;
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --surface-hover: #f3f4f6;
+            --border-light: #e5e7eb;
+            --border-medium: #d1d5db;
+            --text-main: #111827;
+            --text-secondary: #4b5563;
+            --text-tertiary: #9ca3af;
+            --link: #3b82f6;
+            --link-hover: #2563eb;
+            --shadow-soft: 0 12px 28px rgba(17, 24, 39, 0.08);
+            --shadow-strong: 0 20px 45px rgba(17, 24, 39, 0.14);
+            --input-bg: #ffffff;
+            --text-xs: 0.75rem;
+            --text-sm: 0.875rem;
+            --text-base: 1rem;
+            --text-lg: 1.125rem;
+            --text-xl: 1.25rem;
+            --text-2xl: 1.5rem;
+            --text-3xl: 1.875rem;
+            --text-4xl: 2.25rem;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-main);
+            background: radial-gradient(circle at 20% 0%, rgba(59, 130, 246, 0.14), transparent 42%), var(--bg);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(4px);
+            z-index: 0;
+        }
+
+        body::before {
+            width: 360px;
+            height: 360px;
+            background: rgba(59, 130, 246, 0.12);
+            top: -90px;
+            right: -70px;
+            animation: drift 10s ease-in-out infinite;
+        }
+
+        body::after {
+            width: 280px;
+            height: 280px;
+            background: rgba(139, 92, 246, 0.1);
+            bottom: -70px;
+            left: -65px;
+            animation: drift 12s ease-in-out infinite reverse;
+        }
+
+        @keyframes drift {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+            50% {
+                transform: translate(8px, -12px) scale(1.05);
+            }
+        }
+
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.04);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .page-wrap {
+            width: min(1080px, 92vw);
+            margin: 0 auto;
+            padding: 36px 0 18px;
+            position: relative;
+            z-index: 1;
+            animation: reveal 0.8s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: clamp(var(--text-3xl), 4vw, var(--text-4xl));
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            margin: 10px auto 0;
+            max-width: 700px;
+            color: var(--text-secondary);
+            font-size: clamp(var(--text-sm), 2vw, var(--text-lg));
+        }
+
+        .header-actions {
+            margin-top: 16px;
+        }
+
+        .admin-signin-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--border-light);
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
+        }
+
+        .admin-signin-btn:hover {
+            transform: translateY(-2px);
+            background: #dbeafe;
+            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+        }
+
+        .content-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: 1.1fr 0.9fr;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            box-shadow: var(--shadow-soft);
+            padding: 24px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            animation: reveal 0.6s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .section-title {
+            margin: 0 0 14px;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .feedback-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 7px;
+        }
+
+        label {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .label-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light);
+            font-size: 0.92rem;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border-light);
+            background: var(--input-bg);
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 12px 14px;
+            outline: none;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        input[type="text"]::placeholder,
+        textarea::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .counter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-tertiary);
+            font-size: 0.88rem;
+        }
+
+        .counter-row .warn {
+            color: #ffd166;
+        }
+
+        .counter-row .danger {
+            color: #ff9c9c;
+        }
+
+        .rating-box {
+            display: grid;
+            gap: 8px;
+        }
+
+        .stars {
+            display: flex;
+            gap: 10px;
+        }
+
+        .star {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            color: #d1d5db;
+            font-size: 2rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform 0.15s ease, color 0.2s ease;
+        }
+
+        .star:hover,
+        .star:focus-visible {
+            transform: translateY(-2px) scale(1.08);
+            color: var(--accent);
+            outline: none;
+        }
+
+        .star.active {
+            color: var(--accent);
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.32);
+        }
+
+        .rating-text {
+            min-height: 1.2rem;
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+        }
+
+        .submit-btn {
+            margin-top: 6px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(140deg, var(--primary), var(--primary-dark));
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            padding: 13px 18px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+            animation: pulse 2.2s ease-in-out infinite;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 32px rgba(37, 99, 235, 0.45);
+        }
+
+        .submit-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.72;
+            animation: none;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            display: none;
+        }
+
+        .submit-btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .submit-btn.loading .btn-text {
+            opacity: 0.9;
+        }
+
+        .messages {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .alert {
+            padding: 11px 14px;
+            border-radius: 11px;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+            animation: reveal 0.35s ease;
+        }
+
+        .alert.success {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #047857;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.32);
+            color: #b91c1c;
+        }
+
+        .preview-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .preview-item {
+            border: 1px solid var(--border-light);
+            border-radius: 14px;
+            padding: 12px;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .preview-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(17, 24, 39, 0.09);
+        }
+
+        .preview-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .preview-name {
+            font-weight: 700;
+        }
+
+        .preview-rating {
+            color: var(--accent);
+            letter-spacing: 1px;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        .preview-message {
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .preview-time {
+            margin-top: 8px;
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+        }
+
+        .empty-preview {
+            color: var(--text-tertiary);
+            font-style: italic;
+            margin: 4px 0 0;
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--text-tertiary);
+            margin: auto 0 12px;
+            font-size: 0.86rem;
+            z-index: 1;
+            padding: 10px 16px;
+        }
+
+        @media (max-width: 980px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-wrap {
+                width: min(760px, 92vw);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .page-wrap {
+                padding-top: 22px;
+            }
+
+            .glass-card {
+                padding: 18px;
+                border-radius: 16px;
+            }
+
+            .header p {
+                font-size: 0.95rem;
+            }
+
+            .stars {
+                gap: 8px;
+            }
+
+            .star {
+                font-size: 1.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page-wrap">
+        <header class="header">
+            <h1>Share Your Feedback</h1>
+            <p>
+                We value your experience. Tell us what you loved, what can be improved,
+                and give us a quick rating.
+            </p>
+            <div class="header-actions">
+                <a class="admin-signin-btn" href="{{ url_for('admin_login_page') }}">Sign In Admin</a>
+            </div>
+        </header>
+
+        <section class="content-grid" aria-label="Feedback and preview section">
+            <article class="glass-card">
+                <h2 class="section-title">Feedback Form</h2>
+
+                <div id="messages" class="messages" aria-live="polite">
+                    {% with flashes = get_flashed_messages(with_categories=true) %}
+                      {% if flashes %}
+                        {% for category, message in flashes %}
+                          <div class="alert {{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
+                </div>
+
+                <form id="feedbackForm" class="feedback-form" method="post" action="{{ url_for('submit_feedback') }}" novalidate>
+                    <div class="form-group">
+                        <label for="name">
+                            <span class="label-icon" aria-hidden="true">👤</span>
+                            Name
+                        </label>
+                        <input id="name" name="name" type="text" maxlength="100" placeholder="Your full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">
+                            <span class="label-icon" aria-hidden="true">💬</span>
+                            Message
+                        </label>
+                        <textarea id="message" name="message" maxlength="500" placeholder="Write your feedback here..." required></textarea>
+                        <div class="counter-row">
+                            <span id="messageHelp">Maximum 500 characters</span>
+                            <span id="charCount">0 / 500</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group rating-box">
+                        <label>
+                            <span class="label-icon" aria-hidden="true">⭐</span>
+                            Rating
+                        </label>
+                        <div class="stars" id="starContainer" role="radiogroup" aria-label="Rating from 1 to 5">
+                            <button type="button" class="star" data-value="1" aria-label="1 star">★</button>
+                            <button type="button" class="star" data-value="2" aria-label="2 stars">★</button>
+                            <button type="button" class="star" data-value="3" aria-label="3 stars">★</button>
+                            <button type="button" class="star" data-value="4" aria-label="4 stars">★</button>
+                            <button type="button" class="star" data-value="5" aria-label="5 stars">★</button>
+                        </div>
+                        <input type="hidden" id="rating" name="rating" value="0">
+                        <div id="ratingText" class="rating-text">No rating selected</div>
+                    </div>
+
+                    <button id="submitBtn" class="submit-btn" type="submit">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span class="btn-text">Submit Feedback</span>
+                    </button>
+                </form>
+            </article>
+
+            <aside class="glass-card" aria-label="Recent feedback preview">
+                <h2 class="section-title">Recent Feedback</h2>
+                <div class="preview-list" id="recentFeedbackList">
+                    {% if recent_feedback %}
+                      {% for fb in recent_feedback %}
+                        <article class="preview-item">
+                            <div class="preview-head">
+                                <span class="preview-name">{{ fb.name }}</span>
+                                <span class="preview-rating">{{ '★' * fb.rating }}{{ '☆' * (5 - fb.rating) }}</span>
+                            </div>
+                            <p class="preview-message">{{ fb.message }}</p>
+                            <div class="preview-time">{{ fb.created_at }}</div>
+                        </article>
+                      {% endfor %}
+                    {% else %}
+                      <p class="empty-preview">No feedback yet. Be the first to share your thoughts.</p>
+                    {% endif %}
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <footer class="footer">
+        © {{ current_year }} Online Feedback System. All rights reserved.
+    </footer>
+
+    <script>
+        (function () {
+            const form = document.getElementById("feedbackForm");
+            const nameInput = document.getElementById("name");
+            const messageInput = document.getElementById("message");
+            const ratingInput = document.getElementById("rating");
+            const ratingText = document.getElementById("ratingText");
+            const stars = Array.from(document.querySelectorAll(".star"));
+            const charCount = document.getElementById("charCount");
+            const messageHelp = document.getElementById("messageHelp");
+            const submitBtn = document.getElementById("submitBtn");
+            const messagesBox = document.getElementById("messages");
+            const previewList = document.getElementById("recentFeedbackList");
+
+            let selectedRating = 0;
+
+            function renderStars(value) {
+                stars.forEach((star) => {
+                    const starValue = Number(star.dataset.value);
+                    star.classList.toggle("active", starValue <= value);
+                });
+            }
+
+            function setRating(value) {
+                selectedRating = value;
+                ratingInput.value = String(value);
+                renderStars(value);
+                ratingText.textContent = value > 0
+                    ? `Selected rating: ${value} / 5`
+                    : "No rating selected";
+            }
+
+            function showAlert(type, message) {
+                const el = document.createElement("div");
+                el.className = `alert ${type === "success" ? "success" : "error"}`;
+                el.textContent = message;
+                messagesBox.replaceChildren(el);
+            }
+
+            function escapeHtml(text) {
+                return text
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll("\"", "&quot;")
+                    .replaceAll("'", "&#39;");
+            }
+
+            function appendPreviewItem(name, message, rating) {
+                const empty = previewList.querySelector(".empty-preview");
+                if (empty) {
+                    empty.remove();
+                }
+
+                const starsFilled = "★".repeat(rating);
+                const starsEmpty = "☆".repeat(5 - rating);
+                const nowLabel = new Date().toLocaleString();
+
+                const article = document.createElement("article");
+                article.className = "preview-item";
+                article.innerHTML = `
+                    <div class="preview-head">
+                        <span class="preview-name">${escapeHtml(name)}</span>
+                        <span class="preview-rating">${starsFilled}${starsEmpty}</span>
+                    </div>
+                    <p class="preview-message">${escapeHtml(message)}</p>
+                    <div class="preview-time">${escapeHtml(nowLabel)}</div>
+                `;
+
+                previewList.prepend(article);
+
+                const items = previewList.querySelectorAll(".preview-item");
+                if (items.length > 3) {
+                    items[items.length - 1].remove();
+                }
+            }
+
+            function validateForm() {
+                const name = nameInput.value.trim();
+                const message = messageInput.value.trim();
+                const rating = Number(ratingInput.value);
+
+                if (!name) {
+                    showAlert("error", "Name is required.");
+                    nameInput.focus();
+                    return null;
+                }
+                if (!message) {
+                    showAlert("error", "Message is required.");
+                    messageInput.focus();
+                    return null;
+                }
+                if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+                    showAlert("error", "Please select a rating between 1 and 5.");
+                    return null;
+                }
+
+                return { name, message, rating };
+            }
+
+            messageInput.addEventListener("input", () => {
+                const length = messageInput.value.length;
+                charCount.textContent = `${length} / 500`;
+                charCount.classList.remove("warn", "danger");
+
+                if (length >= 450 && length < 500) {
+                    charCount.classList.add("warn");
+                    messageHelp.textContent = "You are close to the character limit.";
+                } else if (length >= 500) {
+                    charCount.classList.add("danger");
+                    messageHelp.textContent = "Character limit reached.";
+                } else {
+                    messageHelp.textContent = "Maximum 500 characters";
+                }
+            });
+
+            stars.forEach((star) => {
+                const value = Number(star.dataset.value);
+
+                star.addEventListener("mouseenter", () => {
+                    renderStars(value);
+                    ratingText.textContent = `Preview rating: ${value} / 5`;
+                });
+
+                star.addEventListener("mouseleave", () => {
+                    renderStars(selectedRating);
+                    ratingText.textContent = selectedRating > 0
+                        ? `Selected rating: ${selectedRating} / 5`
+                        : "No rating selected";
+                });
+
+                star.addEventListener("click", () => setRating(value));
+            });
+
+            document.getElementById("starContainer").addEventListener("mouseleave", () => {
+                renderStars(selectedRating);
+                ratingText.textContent = selectedRating > 0
+                    ? `Selected rating: ${selectedRating} / 5`
+                    : "No rating selected";
+            });
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                messagesBox.replaceChildren();
+
+                const payload = validateForm();
+                if (!payload) {
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.classList.add("loading");
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "X-Requested-With": "XMLHttpRequest"
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || "Could not submit feedback.");
+                    }
+
+                    showAlert("success", result.message || "Feedback submitted successfully.");
+                    appendPreviewItem(payload.name, payload.message, payload.rating);
+
+                    form.reset();
+                    setRating(0);
+                    messageInput.dispatchEvent(new Event("input"));
+                    nameInput.focus();
+                } catch (error) {
+                    const message = error instanceof Error
+                        ? error.message
+                        : "Something went wrong while submitting feedback.";
+                    showAlert("error", message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove("loading");
+                }
+            });
+
+            messageInput.dispatchEvent(new Event("input"));
+        })();
+    </script>
+</body>
+</html>

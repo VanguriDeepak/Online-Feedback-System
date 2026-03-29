@@ -1,157 +1,209 @@
-"""
-database.py — SQLite helper module for the Online Feedback System.
-Author: Member 3 (Database)
+"""SQLite database module for an Online Feedback System.
 
-Provides:
-    • get_connection()       – returns a reusable DB connection
-    • init_db()              – creates the feedbacks table if not exists
-    • add_feedback()         – insert a new feedback entry
-    • fetch_all_feedbacks()  – retrieve all feedback records
-    • fetch_feedback_by_id() – retrieve a single feedback by id
-    • delete_feedback()      – remove a feedback entry by id
+This module provides schema initialization, feedback CRUD helpers,
+and admin authentication with bcrypt password hashing.
 """
+
+from __future__ import annotations
 
 import sqlite3
-import os
+from pathlib import Path
+from typing import Any
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'feedback.db')
+import bcrypt
 
 
-# ---------------------------------------------------------------------------
-# Connection helper
-# ---------------------------------------------------------------------------
-def get_connection():
-    """Return a sqlite3 connection with Row factory for dict-like access."""
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row  # rows behave like dicts
+DB_PATH = Path(__file__).resolve().parent / "feedback_system.db"
+
+
+def _get_connection() -> sqlite3.Connection:
+    """Create and return a SQLite connection."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     return conn
 
 
-# ---------------------------------------------------------------------------
-# Initialise database (create table)
-# ---------------------------------------------------------------------------
-def init_db():
-    """Create the feedbacks table if it does not already exist."""
-    conn = get_connection()
-    cursor = conn.cursor()
+def _validate_feedback_input(name: str, message: str, rating: int) -> None:
+    """Validate feedback payload before writing to the database."""
+    if not isinstance(name, str):
+        raise ValueError("Name must be a string.")
+    if not isinstance(message, str):
+        raise ValueError("Message must be a string.")
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS feedbacks (
-            id      INTEGER PRIMARY KEY AUTOINCREMENT,
-            name    TEXT    NOT NULL,
-            message TEXT    NOT NULL,
-            rating  INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5)
-        );
-    """)
+    name = name.strip()
+    message = message.strip()
 
-    conn.commit()
-    conn.close()
-    print("[✓] Database initialised — feedbacks table ready.")
+    if not name:
+        raise ValueError("Name is required.")
+    if len(name) > 100:
+        raise ValueError("Name must be at most 100 characters.")
 
+    if not message:
+        raise ValueError("Message is required.")
 
-# ---------------------------------------------------------------------------
-# CRUD Functions
-# ---------------------------------------------------------------------------
-
-# ── 1. Add Feedback ─────────────────────────────────────────────────────
-def add_feedback(name: str, message: str, rating: int) -> int:
-    """
-    Insert a new feedback entry and return its id.
-    Rating must be between 1 and 5.
-    """
-    if not (1 <= rating <= 5):
+    if not isinstance(rating, int):
+        raise ValueError("Rating must be an integer.")
+    if rating < 1 or rating > 5:
         raise ValueError("Rating must be between 1 and 5.")
 
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO feedbacks (name, message, rating) VALUES (?, ?, ?)",
-        (name, message, rating),
-    )
-    conn.commit()
-    feedback_id = cursor.lastrowid
-    conn.close()
-    return feedback_id
+
+def _validate_admin_input(username: str, password: str) -> None:
+    """Validate admin credentials before verification."""
+    if not isinstance(username, str) or not username.strip():
+        raise ValueError("Username is required.")
+    if not isinstance(password, str) or not password:
+        raise ValueError("Password is required.")
+    if len(username.strip()) > 50:
+        raise ValueError("Username must be at most 50 characters.")
 
 
-# ── 2. Fetch All Feedbacks ──────────────────────────────────────────────
-def fetch_all_feedbacks() -> list:
-    """Return all feedback entries as a list of dicts."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM feedbacks ORDER BY id DESC")
-    feedbacks = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return feedbacks
+def _hash_password(password: str) -> str:
+    """Hash a plaintext password using bcrypt."""
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
-# ── 3. Fetch Single Feedback by ID ─────────────────────────────────────
-def fetch_feedback_by_id(feedback_id: int) -> dict:
-    """Return a single feedback entry as a dict, or None if not found."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM feedbacks WHERE id = ?", (feedback_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return dict(row) if row else None
+def init_db() -> None:
+    """Create required tables and ensure a default admin account exists."""
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name VARCHAR(100) NOT NULL,
+                    message TEXT NOT NULL,
+                    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS admin (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL
+                )
+                """
+            )
+
+            # Seed default admin only if it does not already exist.
+            cursor.execute("SELECT id FROM admin WHERE username = ?", ("admin",))
+            admin_row = cursor.fetchone()
+            if admin_row is None:
+                password_hash = _hash_password("admin123")
+                cursor.execute(
+                    "INSERT INTO admin (username, password_hash) VALUES (?, ?)",
+                    ("admin", password_hash),
+                )
+
+            conn.commit()
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Database initialization failed: {exc}") from exc
 
 
-# ── 4. Delete Feedback ─────────────────────────────────────────────────
+def add_feedback(name: str, message: str, rating: int) -> int:
+    """Insert a feedback entry and return the inserted row ID."""
+    _validate_feedback_input(name, message, rating)
+
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO feedback (name, message, rating) VALUES (?, ?, ?)",
+                (name.strip(), message.strip(), rating),
+            )
+            conn.commit()
+            return int(cursor.lastrowid)
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Failed to add feedback: {exc}") from exc
+
+
+def get_all_feedback() -> list[dict[str, Any]]:
+    """Return all feedback rows ordered by most recent first."""
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, name, message, rating, created_at
+                FROM feedback
+                ORDER BY created_at DESC, id DESC
+                """
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Failed to fetch feedback: {exc}") from exc
+
+
 def delete_feedback(feedback_id: int) -> bool:
-    """
-    Delete a feedback entry by its id.
-    Returns True if a row was actually deleted, False otherwise.
-    """
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM feedbacks WHERE id = ?", (feedback_id,))
-    conn.commit()
-    deleted = cursor.rowcount > 0
-    conn.close()
-    return deleted
+    """Delete feedback by ID. Returns True if a row was deleted."""
+    if not isinstance(feedback_id, int) or feedback_id <= 0:
+        raise ValueError("Feedback ID must be a positive integer.")
+
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM feedback WHERE id = ?", (feedback_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Failed to delete feedback: {exc}") from exc
 
 
-# ---------------------------------------------------------------------------
-# Quick self-test  (run this file directly to seed & verify)
-# ---------------------------------------------------------------------------
+def verify_admin(username: str, password: str) -> bool:
+    """Validate admin credentials using bcrypt hash verification."""
+    _validate_admin_input(username, password)
+
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT password_hash FROM admin WHERE username = ?",
+                (username.strip(),),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return False
+
+            stored_hash = row["password_hash"]
+            return bcrypt.checkpw(
+                password.encode("utf-8"),
+                stored_hash.encode("utf-8"),
+            )
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Admin verification failed: {exc}") from exc
+
+
+def get_feedback_count() -> int:
+    """Return total number of feedback entries."""
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) AS total FROM feedback")
+            row = cursor.fetchone()
+            return int(row["total"]) if row is not None else 0
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Failed to get feedback count: {exc}") from exc
+
+
+def get_average_rating() -> float:
+    """Return average rating rounded to 2 decimals; 0.0 when no rows exist."""
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT AVG(rating) AS avg_rating FROM feedback")
+            row = cursor.fetchone()
+            avg = row["avg_rating"] if row is not None else None
+            return round(float(avg), 2) if avg is not None else 0.0
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Failed to get average rating: {exc}") from exc
+
+
 if __name__ == "__main__":
-    # Remove old DB for a clean demo
-    if os.path.exists(DATABASE):
-        os.remove(DATABASE)
-
     init_db()
-
-    # Insert sample feedbacks
-    add_feedback("Alice Smith", "The website is really easy to use!", 5)
-    add_feedback("Bob Johnson", "I had some issues finding what I needed.", 3)
-    add_feedback("Charlie Brown", "Great service entirely. The staff was super helpful!", 5)
-    add_feedback("David Lee", "The login page gave me an error once, but overall fine.", 4)
-    add_feedback("Eva Martinez", "Average experience. Could improve the response time.", 3)
-    add_feedback("Frank White", "Absolutely loved the clean interface and fast performance!", 5)
-    print("[+] 6 sample feedbacks inserted.\n")
-
-    # Fetch and display all
-    print("── All Feedbacks ──")
-    for fb in fetch_all_feedbacks():
-        stars = "⭐" * fb["rating"]
-        print(f"  #{fb['id']}  {fb['name']}  {stars}")
-        print(f"       \"{fb['message']}\"\n")
-
-    # Fetch single feedback
-    print("── Fetch Feedback #2 ──")
-    fb = fetch_feedback_by_id(2)
-    if fb:
-        print(f"  {fb['name']} — Rating: {fb['rating']}/5")
-        print(f"  \"{fb['message']}\"\n")
-
-    # Delete feedback #3
-    result = delete_feedback(3)
-    print(f"── Delete Feedback #3 → {'Success' if result else 'Not Found'} ──\n")
-
-    # Final state
-    print("── Remaining Feedbacks ──")
-    for fb in fetch_all_feedbacks():
-        print(f"  #{fb['id']}  {fb['name']}  {'⭐' * fb['rating']}")

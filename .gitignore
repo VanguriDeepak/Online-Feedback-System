@@ -1,6 +1,24 @@
-feedback.db
+# Python cache
 __pycache__/
-*.pyc
-env/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
 venv/
-.env
+env/
+
+# Flask cache and logs
+instance/
+*.log
+
+# Local SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
