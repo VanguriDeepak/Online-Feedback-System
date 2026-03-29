@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Your Feedback</title>
+    <style>
+        /* CSS resets and variables for easy theming */
+        :root {
+            --primary-color: #4CAF50;
+            --primary-hover: #45a049;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-muted: #777777;
+            --border-color: #e0e0e0;
+            --star-inactive: #dcdcdc;
+            --star-active: #ffc107;
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Card Layout */
+        .feedback-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px 35px;
+            transition: transform 0.3s ease;
+        }
+
+        .feedback-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .feedback-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .feedback-header h2 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .feedback-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #444;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+        }
+
+        .form-control::placeholder {
+            color: #aaa;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        /* Star Rating System using pure CSS */
+        .rating-group {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .rating-group input {
+            display: none;
+        }
+
+        .rating-group label {
+            cursor: pointer;
+            font-size: 35px;
+            color: var(--star-inactive);
+            margin-right: 8px;
+            transition: color 0.2s ease-in-out, transform 0.2s ease;
+        }
+
+        .rating-group label:before {
+            content: '\2605'; /* Solid Star Unicode */
+        }
+
+        /* Hover, Active, and Checked States for Stars */
+        .rating-group label:hover,
+        .rating-group label:hover ~ label {
+            color: #ffca28;
+            transform: scale(1.1);
+        }
+
+        .rating-group input:checked ~ label {
+            color: var(--star-active);
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s;
+            margin-top: 10px;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .submit-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Success Message Placeholder */
+        .success-message {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            border: 1px solid #c8e6c9;
+            /* Hidden by default, un-comment display: block in devtools to view */
+            display: none; 
+        }
+
+        /* Basic UI Interaction for Success Message targeting without JS */
+        /* If form is submitted with an anchor #success, we apply block */
+        #success-state:target {
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .feedback-card {
+                padding: 30px 20px;
+            }
+            .feedback-header h2 {
+                font-size: 1.6rem;
+            }
+            .rating-group label {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="feedback-card">
+        <div class="feedback-header">
+            <h2>Submit Your Feedback</h2>
+            <p>Tell us about your experience to help us improve.</p>
+        </div>
+
+        <!-- Note: Added an action purely to demonstrate the success placeholder natively -->
+        <form action="#success-state" method="POST">
+            
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" class="form-control" placeholder="E.g. John Doe" required>
+            </div>
+
+            <div class="form-group">
+                <label>Overall Rating</label>
+                <!-- Row Reverse flex is used so previous siblings can be styled on hover -->
+                <div class="rating-group">
+                    <input type="radio" id="star5" name="rating" value="5">
+                    <label for="star5" title="5 Stars"></label>
+                    <input type="radio" id="star4" name="rating" value="4">
+                    <label for="star4" title="4 Stars"></label>
+                    <input type="radio" id="star3" name="rating" value="3">
+                    <label for="star3" title="3 Stars"></label>
+                    <input type="radio" id="star2" name="rating" value="2">
+                    <label for="star2" title="2 Stars"></label>
+                    <input type="radio" id="star1" name="rating" value="1" required>
+                    <label for="star1" title="1 Star"></label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Feedback Message</label>
+                <textarea id="message" name="message" class="form-control" placeholder="What did you like or dislike?" required></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submit-btn">Submit Feedback</button>
+
+        </form>
+
+        <!-- Placeholder for Success Message Area -->
+        <!-- Changes to display: block when #success-state is triggered via form hack -->
+        <div id="success-state" class="success-message">
+            ✅ Thank you! Your feedback has been submitted successfully.
+        </div>
+    </div>
+
+</body>
+</html>
