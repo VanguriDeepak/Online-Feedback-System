@@ -1,14 +1,14 @@
 """
-database.py — SQLite helper module for the Student Task Manager.
+database.py — SQLite helper module for the Online Feedback System.
+Author: Member 3 (Database)
 
 Provides:
-    • get_connection()    – returns a reusable DB connection
-    • init_db()           – creates tables if they don't exist
-    • add_user()          – register a new user
-    • add_task()          – create a new task for a user
-    • fetch_tasks()       – get all tasks (optionally filtered by user)
-    • update_task_status()– mark a task as Pending / Completed
-    • delete_task()       – remove a task by its id
+    • get_connection()       – returns a reusable DB connection
+    • init_db()              – creates the feedbacks table if not exists
+    • add_feedback()         – insert a new feedback entry
+    • fetch_all_feedbacks()  – retrieve all feedback records
+    • fetch_feedback_by_id() – retrieve a single feedback by id
+    • delete_feedback()      – remove a feedback entry by id
 """
 
 import sqlite3
@@ -17,142 +17,97 @@ import os
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'task_manager.db')
+DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'feedback.db')
 
 
 # ---------------------------------------------------------------------------
 # Connection helper
 # ---------------------------------------------------------------------------
 def get_connection():
-    """Return a sqlite3 connection with foreign-key support enabled."""
+    """Return a sqlite3 connection with Row factory for dict-like access."""
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row          # rows behave like dicts
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row  # rows behave like dicts
     return conn
 
 
 # ---------------------------------------------------------------------------
-# Initialise database (create tables)
+# Initialise database (create table)
 # ---------------------------------------------------------------------------
 def init_db():
-    """Create the Users and Tasks tables if they do not already exist."""
+    """Create the feedbacks table if it does not already exist."""
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Users (
-            id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT    NOT NULL UNIQUE,
-            password TEXT    NOT NULL
-        );
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Tasks (
-            id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id  INTEGER NOT NULL,
-            title    TEXT    NOT NULL,
-            deadline TEXT,
-            status   TEXT    NOT NULL DEFAULT 'Pending'
-                             CHECK (status IN ('Pending', 'Completed')),
-            FOREIGN KEY (user_id) REFERENCES Users (id)
-                ON DELETE CASCADE
+        CREATE TABLE IF NOT EXISTS feedbacks (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            name    TEXT    NOT NULL,
+            message TEXT    NOT NULL,
+            rating  INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5)
         );
     """)
 
     conn.commit()
     conn.close()
-    print("[✓] Database initialised successfully.")
+    print("[✓] Database initialised — feedbacks table ready.")
 
 
 # ---------------------------------------------------------------------------
 # CRUD Functions
 # ---------------------------------------------------------------------------
 
-# ── 1. Add User ──────────────────────────────────────────────────────────
-def add_user(username: str, password: str) -> int:
+# ── 1. Add Feedback ─────────────────────────────────────────────────────
+def add_feedback(name: str, message: str, rating: int) -> int:
     """
-    Insert a new user and return their id.
-    Raises sqlite3.IntegrityError if the username already exists.
+    Insert a new feedback entry and return its id.
+    Rating must be between 1 and 5.
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO Users (username, password) VALUES (?, ?)",
-        (username, password),
-    )
-    conn.commit()
-    user_id = cursor.lastrowid
-    conn.close()
-    return user_id
-
-
-# ── 2. Add Task ──────────────────────────────────────────────────────────
-def add_task(user_id: int, title: str, deadline: str = None, status: str = "Pending") -> int:
-    """
-    Insert a new task for a user and return the task id.
-    """
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO Tasks (user_id, title, deadline, status) VALUES (?, ?, ?, ?)",
-        (user_id, title, deadline, status),
-    )
-    conn.commit()
-    task_id = cursor.lastrowid
-    conn.close()
-    return task_id
-
-
-# ── 3. Fetch Tasks ──────────────────────────────────────────────────────
-def fetch_tasks(user_id: int = None) -> list[dict]:
-    """
-    Return tasks as a list of dicts.
-    If user_id is provided, only that user's tasks are returned.
-    """
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    if user_id:
-        cursor.execute("SELECT * FROM Tasks WHERE user_id = ?", (user_id,))
-    else:
-        cursor.execute("SELECT * FROM Tasks")
-
-    tasks = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return tasks
-
-
-# ── 4. Update Task Status ───────────────────────────────────────────────
-def update_task_status(task_id: int, new_status: str) -> bool:
-    """
-    Update the status of a task. new_status must be 'Pending' or 'Completed'.
-    Returns True if a row was actually updated, False otherwise.
-    """
-    if new_status not in ("Pending", "Completed"):
-        raise ValueError("Status must be 'Pending' or 'Completed'.")
+    if not (1 <= rating <= 5):
+        raise ValueError("Rating must be between 1 and 5.")
 
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE Tasks SET status = ? WHERE id = ?",
-        (new_status, task_id),
+        "INSERT INTO feedbacks (name, message, rating) VALUES (?, ?, ?)",
+        (name, message, rating),
     )
     conn.commit()
-    updated = cursor.rowcount > 0
+    feedback_id = cursor.lastrowid
     conn.close()
-    return updated
+    return feedback_id
 
 
-# ── 5. Delete Task ──────────────────────────────────────────────────────
-def delete_task(task_id: int) -> bool:
+# ── 2. Fetch All Feedbacks ──────────────────────────────────────────────
+def fetch_all_feedbacks() -> list:
+    """Return all feedback entries as a list of dicts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM feedbacks ORDER BY id DESC")
+    feedbacks = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return feedbacks
+
+
+# ── 3. Fetch Single Feedback by ID ─────────────────────────────────────
+def fetch_feedback_by_id(feedback_id: int) -> dict:
+    """Return a single feedback entry as a dict, or None if not found."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM feedbacks WHERE id = ?", (feedback_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+# ── 4. Delete Feedback ─────────────────────────────────────────────────
+def delete_feedback(feedback_id: int) -> bool:
     """
-    Delete a task by its id.
-    Returns True if a row was deleted, False otherwise.
+    Delete a feedback entry by its id.
+    Returns True if a row was actually deleted, False otherwise.
     """
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM Tasks WHERE id = ?", (task_id,))
+    cursor.execute("DELETE FROM feedbacks WHERE id = ?", (feedback_id,))
     conn.commit()
     deleted = cursor.rowcount > 0
     conn.close()
@@ -160,49 +115,43 @@ def delete_task(task_id: int) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Quick self-test (run this file directly to seed & verify)
+# Quick self-test  (run this file directly to seed & verify)
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Reset for a clean demo
+    # Remove old DB for a clean demo
     if os.path.exists(DATABASE):
         os.remove(DATABASE)
 
     init_db()
 
-    # Add sample users
-    uid1 = add_user("alice",   "alice123")
-    uid2 = add_user("bob",     "bob456")
-    uid3 = add_user("charlie", "charlie789")
-    print(f"[+] Users created  →  alice={uid1}, bob={uid2}, charlie={uid3}")
+    # Insert sample feedbacks
+    add_feedback("Alice Smith", "The website is really easy to use!", 5)
+    add_feedback("Bob Johnson", "I had some issues finding what I needed.", 3)
+    add_feedback("Charlie Brown", "Great service entirely. The staff was super helpful!", 5)
+    add_feedback("David Lee", "The login page gave me an error once, but overall fine.", 4)
+    add_feedback("Eva Martinez", "Average experience. Could improve the response time.", 3)
+    add_feedback("Frank White", "Absolutely loved the clean interface and fast performance!", 5)
+    print("[+] 6 sample feedbacks inserted.\n")
 
-    # Add sample tasks
-    add_task(uid1, "Complete Math Assignment", "2026-04-05")
-    add_task(uid1, "Read Chapter 4 - DBMS",   "2026-04-02")
-    add_task(uid1, "Submit Lab Report",        "2026-03-30", "Completed")
-    add_task(uid2, "Prepare Presentation",     "2026-04-10")
-    add_task(uid2, "Online Quiz - Python",     "2026-04-01", "Completed")
-    add_task(uid3, "Group Project Meeting",    "2026-04-03")
-    print("[+] Sample tasks inserted.")
+    # Fetch and display all
+    print("── All Feedbacks ──")
+    for fb in fetch_all_feedbacks():
+        stars = "⭐" * fb["rating"]
+        print(f"  #{fb['id']}  {fb['name']}  {stars}")
+        print(f"       \"{fb['message']}\"\n")
 
-    # Fetch all tasks
-    print("\n── All Tasks ──")
-    for t in fetch_tasks():
-        print(f"   Task #{t['id']}  [{t['status']}]  {t['title']}  (due: {t['deadline']})")
+    # Fetch single feedback
+    print("── Fetch Feedback #2 ──")
+    fb = fetch_feedback_by_id(2)
+    if fb:
+        print(f"  {fb['name']} — Rating: {fb['rating']}/5")
+        print(f"  \"{fb['message']}\"\n")
 
-    # Fetch tasks for alice only
-    print("\n── Alice's Tasks ──")
-    for t in fetch_tasks(user_id=uid1):
-        print(f"   Task #{t['id']}  [{t['status']}]  {t['title']}")
-
-    # Update task #1 to Completed
-    update_task_status(1, "Completed")
-    print("\n[~] Task #1 marked as Completed.")
-
-    # Delete task #4
-    delete_task(4)
-    print("[−] Task #4 deleted.")
+    # Delete feedback #3
+    result = delete_feedback(3)
+    print(f"── Delete Feedback #3 → {'Success' if result else 'Not Found'} ──\n")
 
     # Final state
-    print("\n── Final Tasks ──")
-    for t in fetch_tasks():
-        print(f"   Task #{t['id']}  [{t['status']}]  {t['title']}")
+    print("── Remaining Feedbacks ──")
+    for fb in fetch_all_feedbacks():
+        print(f"  #{fb['id']}  {fb['name']}  {'⭐' * fb['rating']}")
