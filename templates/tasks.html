@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Task Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            padding: 2rem;
+        }
+        h1 { text-align: center; margin-bottom: 1.5rem; color: #1a73e8; }
+        h2 { margin: 1.5rem 0 0.75rem; color: #444; }
+
+        /* ── Add Task Form ── */
+        .form-card {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .form-card input[type="text"],
+        .form-card input[type="number"],
+        .form-card input[type="date"] {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        .form-card button {
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 0.65rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .form-card button:hover { background: #1558b0; }
+
+        /* ── Task Table ── */
+        table {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td { padding: 0.75rem 1rem; text-align: left; }
+        th { background: #1a73e8; color: #fff; }
+        tr:nth-child(even) { background: #f9f9f9; }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge.pending   { background: #fff3cd; color: #856404; }
+        .badge.completed { background: #d4edda; color: #155724; }
+
+        .btn-sm {
+            padding: 0.3rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-right: 0.25rem;
+        }
+        .btn-success { background: #28a745; color: #fff; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-danger  { background: #dc3545; color: #fff; }
+        .btn-sm:hover { opacity: 0.85; }
+
+        .empty { text-align: center; padding: 2rem; color: #888; }
+    </style>
+</head>
+<body>
+
+    <h1>📋 Student Task Manager</h1>
+
+    <!-- ── Add Task Form ── -->
+    <div class="form-card">
+        <h2>Add New Task</h2>
+        <form action="/add_task" method="POST">
+            <input type="number" name="user_id" placeholder="User ID" required />
+            <input type="text"   name="title"   placeholder="Task Title" required />
+            <input type="date"   name="deadline" />
+            <button type="submit">+ Add Task</button>
+        </form>
+    </div>
+
+    <!-- ── Task List ── -->
+    {% if tasks %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>User ID</th>
+                <th>Title</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.id }}</td>
+                <td>{{ task.user_id }}</td>
+                <td>{{ task.title }}</td>
+                <td>{{ task.deadline or '—' }}</td>
+                <td>
+                    <span class="badge {{ 'completed' if task.status == 'Completed' else 'pending' }}">
+                        {{ task.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if task.status == 'Pending' %}
+                    <form action="/update_task/{{ task.id }}" method="POST" style="display:inline">
+                        <input type="hidden" name="status" value="Completed" />
+                        <button class="btn-sm btn-success" title="Mark Completed">✔</button>
+                    </form>
+                    {% else %}
+                    <form action="/update_task/{{ task.id }}" method="POST" style="display:inline">
+                        <input type="hidden" name="status" value="Pending" />
+                        <button class="btn-sm btn-warning" title="Mark Pending">↩</button>
+                    </form>
+                    {% endif %}
+
+                    <form action="/delete_task/{{ task.id }}" method="POST" style="display:inline"
+                          onsubmit="return confirm('Delete this task?')">
+                        <button class="btn-sm btn-danger" title="Delete">✖</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No tasks found. Add one above!</p>
+    {% endif %}
+
+</body>
+</html>
