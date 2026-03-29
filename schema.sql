@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS feedbacks;
+
+CREATE TABLE feedbacks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    message TEXT NOT NULL,
+    rating INTEGER NOT NULL
+);
